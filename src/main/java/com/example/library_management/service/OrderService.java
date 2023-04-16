@@ -12,10 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.PublicKey;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -38,6 +35,7 @@ public class OrderService {
         log.info("testetestest");
         log.info(currentUser.getBooks().toString());
         if (currentUser.getBooks().isEmpty()) {
+
             throw new RuntimeException("you're cart is empty");
         }
         Order order = new Order();
@@ -45,22 +43,31 @@ public class OrderService {
         order.setOrderOwner(currentUser.getEmail());
         order.setUser(currentUser);
 
-
         Notifications newNoti = Notifications.builder()
                 .text("your order has been submited")
-                .user(currentUser)
+                .customDate(LocalDateTime.now())
                 .build();
-        //currentUser.getNotifications().add(newNoti);
+        notificationRepository.save(newNoti);
+        log.info(newNoti.toString());
+        currentUser.addNoti(newNoti);
+        log.info(currentUser.getNotifications().toString());
+        userRepository.save(currentUser);
         log.info(order.toString());
-
         orderRepository.save(order);
+        log.info(currentUser.getNotifications().toString());
     }
 
-    public List<Book> orderDetails(Long id) {
-        Order targetOrder = orderRepository.findById(id).orElseThrow(() -> new RuntimeException("this user hasn't submitted an order yet"));
-        User orderUser = targetOrder.getUser();
+    public List<Order> getAllOrders() {
+        return orderRepository.findAll();
+    }
 
-        return userService.getUserCart(orderUser.getId());
+    public List<Book> getOrderDetails(Long id) {
+        Order userOrder = orderRepository.findById(id).orElseThrow(()-> new RuntimeException("no order"));
+        User targetUser = userOrder.getUser();
+        List<Book> userCart = targetUser.getBooks();
+        Collections.sort(userCart,Comparator.comparing(Book::getQuantity));
+
+        return userCart;
     }
 
     public String rejectOrder(Long id) {
@@ -69,17 +76,30 @@ public class OrderService {
         User orderUser = orderToReject.getUser();
         orderUser.getBooks().forEach(book -> book.getUser().remove(orderUser));
         orderUser.getBooks().clear();
+        Notifications newNoti = Notifications.builder()
+                .text("your order application has been rejected")
+                .customDate(LocalDateTime.now())
+                .build();
+        orderUser.getNotifications().add(newNoti);
+        userRepository.save(orderUser);
         orderRepository.delete(orderToReject);
         return "your order has been terminated by the system";
     }
 
     public String validateOrder(Long id) {
         Order userOrder = orderRepository.findById(id).orElseThrow(() -> new RuntimeException("no order"));
+        User orderUser = userOrder.getUser();
         userOrder.setCreatedAt(LocalDateTime.now());
         userOrder.setEndTime(userOrder.getCreatedAt().plusDays(7));
         userOrder.setIsOrderValid(true);
         orderRepository.save(userOrder);
-        pickUpOrder(userOrder.getId());
+        Notifications newNoti = Notifications.builder()
+                .text("your order has been validated you borrow duration is 7 days , the books must be returned before "+ userOrder.getEndTime().toString())
+                .customDate(LocalDateTime.now())
+                .build();
+        notificationRepository.save(newNoti);
+        orderUser.getNotifications().add(newNoti);
+        userRepository.save(orderUser);
 
         return "your order has been validated come pick it up before";
     }
@@ -92,33 +112,37 @@ public class OrderService {
     private void punishUser(Long id) {
         Order orderToreject = orderRepository.findById(id).orElseThrow(()-> new RuntimeException("no order"));
         User userToban = orderToreject.getUser();
+        rejectOrder(orderToreject.getId());
         userService.banUser(userToban.getId());
 
     }
 
-    public boolean checkIsValide(Order order) {
-        return order.getIsOrderValid();
+    public void validateReturn(Long id) {
+        Order returnedOrder = orderRepository.findById(id).orElseThrow(() -> new RuntimeException("no order"));
+        User orderUser = returnedOrder.getUser();
+        orderUser.getBooks().forEach(book -> book.getUser().remove(orderUser));
+        orderUser.getBooks().clear();
+        orderRepository.delete(returnedOrder);
+    }
+    public List<Order> getValidatedOrders() {
+        List<Order> allOrders = getAllOrders();
+        log.info(allOrders.toString());
+        List<Order> validOrders = new ArrayList<>();
+        for (Order order : allOrders ) {
+
+            if (order.getIsOrderValid() != null) validOrders.add(order);
+        }
+        return validOrders;
     }
 
-    public String pickUpOrder(Long orderId) {
-        Order targetOrder = orderRepository.findById(orderId).orElseThrow(() -> new RuntimeException("no order"));
-        if (!checkIsValide(targetOrder)) {
-            throw new RuntimeException("this order hasn't been validated");
+    public List<Order> getUvnalidatedOrders() {
+        List<Order> allOrders = getAllOrders();
+        List<Order> nonValidOrders = new ArrayList<>();
+        for (Order order : allOrders ) {
+            if (order.getIsOrderValid() == null) nonValidOrders.add(order);
         }
 
-        LocalDateTime no = targetOrder.getCreatedAt();
-        //long time = 24*3600;ong time = 24*3600;
-        //long diff = (long) (LocalDateTime.now() - targetOrder.getCreatedAt().plusSeconds(time));
-        long time =  3600;
-        LocalDateTime end = no.plusSeconds(time);
-
-        if (no.getDayOfMonth() >= end.getDayOfMonth()
-                && no.getHour() >= end.getHour()
-                && no.getMinute() >= end.getMinute()) {
-            orderRepository.delete(targetOrder);
-            return "your too late to pickup your order";
-        }else return "come pick up you're order";
-
+        return nonValidOrders;
     }
 
 

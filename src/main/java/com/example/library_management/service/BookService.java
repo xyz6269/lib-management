@@ -29,6 +29,7 @@ public class BookService {
             Book newBook = Book.builder()
                     .isbn(request.getIsbn())
                     .quantity(request.getQuantity())
+                    .cover(request.getCover())
                     .build();
             booksRepository.save(newBook);
         }

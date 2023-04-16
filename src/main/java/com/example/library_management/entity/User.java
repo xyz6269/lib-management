@@ -41,16 +41,17 @@ public class User implements UserDetails {
     private List<Book> books;
     @OneToOne(mappedBy = "user")
     @JsonIgnore
-    private Order Order ;
-    @OneToMany(fetch = FetchType.LAZY,cascade = CascadeType.ALL, mappedBy = "user")
+    private Order Order;
+    @OneToMany(fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Notifications> notifications = new ArrayList<>();
-    @OneToOne(cascade = CascadeType.ALL)
-    @JsonIgnore
-    private History userHistory;
     public void addBooktoCart(Book book) {
         this.books.add(book);
         book.getUser().add(this);
+    }
+
+    public void addNoti(Notifications noti) {
+        this.getNotifications().add(noti);
     }
 
     //-------------------------------------------------USERDETAILSIMPL----------------------------------------------------------------------------------------------

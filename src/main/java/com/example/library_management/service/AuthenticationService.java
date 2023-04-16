@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -54,7 +55,7 @@ public class AuthenticationService {
         userRepository.save(newUser);
         String jwtToken = jwtService.generateToken(newUser);
 
-        return AuthenticationResponse.builder().token(jwtToken).build();
+        return AuthenticationResponse.builder().token(jwtToken).authorisations(newUser.getRoles().stream().map(role -> role.toString()).collect(Collectors.toList())).build();
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
@@ -68,7 +69,7 @@ public class AuthenticationService {
         var user = userRepository.findByEmail(request.getEmail()).orElseThrow(()-> new IllegalArgumentException("not found"));
         var jwtToken = jwtService.generateToken(user);
 
-        return AuthenticationResponse.builder().token(jwtToken).build();
+        return AuthenticationResponse.builder().token(jwtToken).authorisations(user.getRoles().stream().map(role -> role.toString()).collect(Collectors.toList())).build();
     }
 
     public void isUserBanned(String email) {
@@ -83,8 +84,9 @@ public class AuthenticationService {
         if (!(authentication instanceof AnonymousAuthenticationToken)) {
             return userRepository.findByEmail(authentication.getName()).orElseThrow(()-> new RuntimeException("No user with this email"));
         }else{
-            throw new RuntimeException("No user");
+            throw new RuntimeException("the jwt is incomplete");
         }
     }
+
 
 }

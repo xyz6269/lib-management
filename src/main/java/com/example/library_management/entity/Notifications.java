@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Data
@@ -21,7 +22,7 @@ public class Notifications {
     private Long id;
     @Column(nullable = false)
     private String text;
-    private Date customDate;
+    private LocalDateTime customDate;
     @ManyToOne()
     @JsonIgnore
     private User user;

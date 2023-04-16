@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Optional;
 @Repository
 public interface BooksRepository extends JpaRepository<Book, Long> {
-    public Optional<Book> findByIsbn(String isbn);
 
+    public Optional<Book> findByIsbn(String isbn);
     List<Book> findAllByUser(User user);
     void deleteAllByUser(User user);
 

@@ -1,6 +1,7 @@
 package com.example.library_management.controller;
 
 import com.example.library_management.entity.Book;
+import com.example.library_management.entity.Notifications;
 import com.example.library_management.entity.User;
 import com.example.library_management.service.AuthenticationService;
 import com.example.library_management.service.BookService;
@@ -16,18 +17,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/lib/user")
 @RequiredArgsConstructor
-@CrossOrigin()
+@CrossOrigin("*")
 @Slf4j
 public class UserController {
     private final UserService userService;
     private final OrderService orderService;
     private final AuthenticationService authenticationService;
-
-    @GetMapping("/current")
-    @ResponseStatus(HttpStatus.FOUND)
-    public User currentUser() {
-        return authenticationService.getCurrentUser();
-    }
 
     @PostMapping("/addtocart/{id}")
     @ResponseStatus(HttpStatus.CREATED)
@@ -53,5 +48,18 @@ public class UserController {
     public void deleteBookInCart(@PathVariable("id") Long id) {
         userService.deleteBookFromCart(id);
     }
+
+    @DeleteMapping("/unban/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public void unBanUser(@PathVariable("id") Long id) {
+        userService.unBanUser(id);
+    }
+
+    @GetMapping("/mynotis")
+    @ResponseStatus(HttpStatus.OK)
+    public List<Notifications> userNotis() {
+        return userService.myNotis();
+    }
+
 
 }

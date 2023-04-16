@@ -30,11 +30,26 @@ public class UserService {
         return userRepository.findAll();
     }
 
+    public String isAdmin() {
+        return "admin logged in";
+    }
+
     public void deleteUser(long id) {
-        User userToDelte = getUserById(id);
-        userToDelte.getBooks().forEach(book -> book.getUser().clear());
+        User userToDelte = userRepository.findById(id).orElseThrow(()-> new RuntimeException("user doesn't exist"));
+        Order userOrder = userToDelte.getOrder();
+        userToDelte.getBooks().forEach(book -> book.getUser().remove(userToDelte));
+        log.info(userToDelte.getBooks().toString());
         userToDelte.getBooks().clear();
+        if (userToDelte.getOrder() != null) {
+            orderRepository.delete(userOrder);
+        }
         userRepository.delete(userToDelte);
+    }
+
+    public List<Notifications> myNotis() {
+        User user = authenticationService.getCurrentUser();
+        log.info(user.getNotifications().toString());
+        return user.getNotifications();
     }
 
     public User getUserById(long id)  {
@@ -51,16 +66,6 @@ public class UserService {
                         ()-> new RuntimeException("user not found"));
     }
 
-    public void promoteUser(long id){
-        User user = userRepository.findById(id).orElseThrow(()-> new RuntimeException("user doesn't exist"));
-        Role role = roleRepository.findById(1L)
-                .orElseThrow(
-                        ()->new RuntimeException()
-                );
-        var list = user.getRoles();
-        list.add(role);
-        user.setRoles(list);
-    }
 
     public void addToCart(long id) {
         User currentUser = authenticationService.getCurrentUser();
@@ -93,20 +98,6 @@ public class UserService {
         log.info(currentUser.getBooks().toString()+" ayoooooooooooooooooooo wtf");
     }
 
-    public void removeBookFromCart(Long id) {
-        User currentUser = authenticationService.getCurrentUser();
-        Book bookToRemove = booksRepository.findById(id).orElseThrow(()-> new RuntimeException("book isn't available"));
-        if (currentUser.getBooks().isEmpty()){
-            throw new RuntimeException("your cart is already empty ");
-        }
-        currentUser.getBooks().remove(bookToRemove);
-    }
-
-    public void emptyCart() {
-        User currentUser = authenticationService.getCurrentUser();
-        currentUser.getBooks().removeAll(currentUser.getBooks());
-    }
-
     public List<Book> getUserCart(Long id) {
         List<Integer> orderingList = new ArrayList<>();
         List<Book> orderDetails = new ArrayList<>();
@@ -118,14 +109,6 @@ public class UserService {
         return target.getBooks();
     }
 
-    public List<Book> getOrderDetails(Long id) {
-        Order userOrder = orderRepository.findById(id).orElseThrow(()-> new RuntimeException("no order"));
-        User targetUser = userOrder.getUser();
-        List<Book> userCart = targetUser.getBooks();
-        Collections.sort(userCart,Comparator.comparing(Book::getQuantity));
-
-        return userCart;
-    }
 
     public List<Book> checkMyCart() {
         User currentUser = authenticationService.getCurrentUser();
@@ -135,7 +118,12 @@ public class UserService {
     public void deleteBookFromCart(Long id) {
         User currentUser= authenticationService.getCurrentUser();
         Book bookToRemove = bookService.getBookbyId(id);
-        currentUser.getBooks().remove(bookToRemove);
+        if (currentUser.getOrder() == null) {
+            bookToRemove.getUser().remove(currentUser);
+            currentUser.getBooks().remove(bookToRemove);
+        }else {
+            throw new RuntimeException("you can't modify your cart while your order is submitted and being processed");
+        }
     }
 
     public void banUser(Long id) {
@@ -144,6 +132,12 @@ public class UserService {
         BannedUser bannedUser = new BannedUser();
         bannedUser.setUserEmail(bannedUserEmail);
         banList.save(bannedUser);
+    }
+
+    public void unBanUser(Long id) {
+        BannedUser userToUnBan = banList.findById(id).orElseThrow(() -> new RuntimeException("no such user exist in the ban list"));
+        banList.delete(userToUnBan);
+
     }
 
 

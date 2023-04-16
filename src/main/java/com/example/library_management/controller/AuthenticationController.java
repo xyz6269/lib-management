@@ -3,6 +3,7 @@ package com.example.library_management.controller;
 import com.example.library_management.DTO.AuthenticationRequest;
 import com.example.library_management.DTO.AuthenticationResponse;
 import com.example.library_management.DTO.RegisterRequest;
+import com.example.library_management.entity.User;
 import com.example.library_management.repository.UserRepository;
 import com.example.library_management.service.AuthenticationService;
 import com.example.library_management.service.BookService;
@@ -11,6 +12,7 @@ import com.example.library_management.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/lib/auth")
 @RequiredArgsConstructor
-@CrossOrigin()
+@CrossOrigin("*")
 @Slf4j
 public class AuthenticationController {
     private final AuthenticationService authenticationService;
@@ -33,4 +35,12 @@ public class AuthenticationController {
     public ResponseEntity<AuthenticationResponse> register(@RequestBody AuthenticationRequest request){
         return ResponseEntity.ok(authenticationService.authenticate(request));
     }
+    
+    @GetMapping("/current")
+    public  ResponseEntity<User> getCurrentUser() {
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(authenticationService.getCurrentUser());
+    }
+
 }

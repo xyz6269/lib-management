@@ -25,6 +25,7 @@ public class Book {
     @Column(nullable = false)
     private String isbn;
     private Integer quantity;
+    private String cover;
     @ManyToMany
     @JsonIgnore
     private List<User> user;
